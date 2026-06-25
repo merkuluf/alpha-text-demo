@@ -1,0 +1,31 @@
+{
+  "editor": {
+    "title": "Text Editor for Alpha-Doc",
+    "toolbar": {
+      "textStyle": "Text Style",
+      "normalText": "Normal text",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bold": "Bold (Ctrl+B)",
+      "italic": "Italic (Ctrl+I)",
+      "strikethrough": "Strikethrough",
+      "lists": "Lists",
+      "bulletList": "Bullet list",
+      "numberedList": "Numbered list",
+      "blockquote": "Blockquote",
+      "codeBlock": "Code Block",
+      "horizontalRule": "Horizontal Rule",
+      "undo": "Undo (Ctrl+Z)",
+      "redo": "Redo (Ctrl+Y)"
+    }
+  },
+  "controls": {
+    "exportData": "Export Data",
+    "print": "Print (console)",
+    "contentManagement": "Content Management",
+    "loadSample": "Load Sample",
+    "clear": "Clear",
+    "toolbarSettings": "Toolbar Settings (enable/disable)"
+  }
+}

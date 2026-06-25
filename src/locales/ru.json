@@ -1,0 +1,31 @@
+{
+  "editor": {
+    "title": "Редактор текста для Alpha-Doc",
+    "toolbar": {
+      "textStyle": "Стиль текста",
+      "normalText": "Обычный текст",
+      "heading1": "Заголовок 1",
+      "heading2": "Заголовок 2",
+      "heading3": "Заголовок 3",
+      "bold": "Жирный (Ctrl+B)",
+      "italic": "Курсив (Ctrl+I)",
+      "strikethrough": "Зачеркивание",
+      "lists": "Списки",
+      "bulletList": "Маркированный список",
+      "numberedList": "Нумерованный список",
+      "blockquote": "Блок цитаты",
+      "codeBlock": "Блок кода",
+      "horizontalRule": "Горизонтальная линия",
+      "undo": "Отменить (Ctrl+Z)",
+      "redo": "Повторить (Ctrl+Y)"
+    }
+  },
+  "controls": {
+    "exportData": "Экспорт данных",
+    "print": "Print (консоль)",
+    "contentManagement": "Управление контентом",
+    "loadSample": "Загрузить пример",
+    "clear": "Очистить",
+    "toolbarSettings": "Модульная панель (включить/отключить)"
+  }
+}
