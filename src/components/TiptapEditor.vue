@@ -48,11 +48,7 @@ const startHeight = ref(0)
 const openDropdown = ref<string | null>(null)
 
 const editor = useEditor({
-  extensions: [
-    StarterKit.configure({ listItem: false }),
-    ListItemWithHeading,
-    Markdown,
-  ],
+  extensions: [StarterKit.configure({ listItem: false }), ListItemWithHeading, Markdown],
   content: props.modelValue,
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
@@ -373,28 +369,24 @@ defineExpose({
       </button>
     </div>
 
-    <EditorContent
-      :editor="editor"
-      class="tiptap-editor-content"
-      @mousedown="focusEditor"
-    />
+    <EditorContent :editor="editor" class="tiptap-editor-content" @mousedown="focusEditor" />
     <div class="resize-handle" @mousedown="startResize" />
   </div>
 </template>
 
 <style scoped>
 .tiptap-editor-wrapper {
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   position: relative;
   width: 100%;
   height: 400px;
   display: flex;
   flex-direction: column;
   border: none;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: visible;
-  background: #f8f8f8;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .tiptap-toolbar {
@@ -402,13 +394,42 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 10px 12px;
-  border-bottom: 1px solid #e8e8e8;
-  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px 12px 0 0;
+  background: #f9fafb;
   flex-wrap: wrap;
   position: relative;
   z-index: 10;
   overflow: visible;
   min-height: 56px;
+}
+
+@media (max-width: 768px) {
+  .tiptap-editor-wrapper {
+    height: 350px;
+    border-radius: 10px;
+  }
+
+  .tiptap-toolbar {
+    gap: 4px;
+    padding: 8px 10px;
+    border-radius: 10px 10px 0 0;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tiptap-editor-wrapper {
+    height: 300px;
+    border-radius: 8px;
+  }
+
+  .tiptap-toolbar {
+    gap: 3px;
+    padding: 6px 8px;
+    border-radius: 8px 8px 0 0;
+    min-height: 44px;
+  }
 }
 
 /* Базовая кнопка тулбара — компактная иконка */
@@ -421,36 +442,56 @@ defineExpose({
   padding: 0 10px;
   font-size: 14px;
   font-weight: 600;
-  font-family: Arial, sans-serif;
-  border: 1.5px solid #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  border: 1.5px solid #d1d5db;
   border-radius: 8px;
   background: white;
-  color: #333;
+  color: #374151;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+@media (max-width: 768px) {
+  .tiptap-toolbar button {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tiptap-toolbar button {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
 }
 
 .tiptap-toolbar button:hover:not(:disabled) {
-  background-color: #f5f5f5;
-  border-color: #d0d0d0;
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
 }
 
 .tiptap-toolbar button:active:not(:disabled) {
-  background-color: #ebebeb;
+  background-color: #e5e7eb;
 }
 
 /* Активное состояние — жёлтое, как акцентные кнопки приложения */
 .tiptap-toolbar button.is-active {
-  background-color: #f4d35e;
-  border-color: #f4d35e;
-  color: #333;
+  background-color: #fbbf24;
+  border-color: #fbbf24;
+  color: #1f2937;
+  font-weight: 700;
 }
 
 .tiptap-toolbar button.is-active:hover:not(:disabled) {
-  background-color: #ecc840;
-  border-color: #ecc840;
+  background-color: #f59e0b;
+  border-color: #f59e0b;
 }
 
 .tiptap-toolbar button:disabled {
@@ -491,13 +532,12 @@ defineExpose({
   min-width: 100%;
   width: max-content;
   padding: 6px;
-  background: #ffffff;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
 
-/* Пункт меню — перебиваем базовую иконочную кнопку (.tiptap-toolbar button) */
 .dropdown-menu .dropdown-item {
   display: flex;
   align-items: center;
@@ -509,27 +549,28 @@ defineExpose({
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #333;
+  color: #374151;
   text-align: left;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.3;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .dropdown-menu .dropdown-item:hover:not(:disabled) {
-  background-color: #f5f5f5;
-  border: none;
+  background-color: #f3f4f6;
 }
 
 .dropdown-menu .dropdown-item.is-active {
-  background-color: #f4d35e;
-  color: #333;
+  background-color: #fbbf24;
+  color: #1f2937;
   font-weight: 700;
 }
 
 .dropdown-menu .dropdown-item.is-active:hover:not(:disabled) {
-  background-color: #ecc840;
+  background-color: #f59e0b;
 }
 
 /* Глиф моноширинного кода в кнопках тулбара */
@@ -546,10 +587,9 @@ defineExpose({
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #f0f0f0;
-  color: #333;
-  border-radius: 0 0 16px 16px;
-  /* Вся область — текстовый курсор, клик в любом месте начинает набор */
+  background: white;
+  color: #1f2937;
+  border-radius: 0 0 12px 12px;
   cursor: text;
 }
 
@@ -560,9 +600,9 @@ defineExpose({
   width: 14px;
   height: 14px;
   background:
-    linear-gradient(135deg, #999 0%, #999 2px, transparent 2px),
-    linear-gradient(135deg, #999 8px, #999 10px, transparent 10px),
-    linear-gradient(135deg, #999 16px, #999 18px, transparent 18px);
+    linear-gradient(135deg, #bfbfbf 0%, #bfbfbf 2px, transparent 2px),
+    linear-gradient(135deg, #bfbfbf 8px, #bfbfbf 10px, transparent 10px),
+    linear-gradient(135deg, #bfbfbf 16px, #bfbfbf 18px, transparent 18px);
   background-size: 3px 3px;
   background-position:
     0 0,
@@ -571,22 +611,36 @@ defineExpose({
   background-repeat: no-repeat;
   cursor: se-resize;
   transition: opacity 0.2s;
-  opacity: 0.4;
+  opacity: 0.3;
 }
 
 .resize-handle:hover {
-  opacity: 0.8;
+  opacity: 0.6;
 }
 
 /* Tiptap default styles */
 :deep(.ProseMirror) {
   flex: 1;
   outline: none;
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  /* padding внутри редактируемой области, чтобы клик по отступам тоже фокусил */
   padding: 16px;
+  color: #1f2937;
+}
+
+@media (max-width: 768px) {
+  :deep(.ProseMirror) {
+    font-size: 13px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  :deep(.ProseMirror) {
+    font-size: 12px;
+    padding: 10px;
+  }
 }
 
 :deep(.ProseMirror p) {
