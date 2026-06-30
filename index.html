@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
     <meta name="description" content="Alpha-Doc Text Editor - Полнофункциональный редактор текста с адаптивным интерфейсом">
     <meta name="theme-color" content="#f8f9fa">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,6 +25,18 @@
       #app {
         width: 100%;
         min-height: 100vh;
+      }
+      /* Отключаем autofocus zoom на iOS для input и textarea */
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="number"],
+      input[type="url"],
+      textarea,
+      select {
+        font-size: 16px !important;
+        -webkit-appearance: none;
+        -webkit-user-scalable: 1;
       }
     </style>
   </head>

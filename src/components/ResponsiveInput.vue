@@ -105,6 +105,16 @@ const handleBlur = () => {
   transition: all 0.2s ease-in-out;
   min-height: 44px;
   line-height: 1.5;
+  /* Отключаем autofocus zoom на iOS */
+  -webkit-appearance: none;
+  -webkit-user-scalable: 1;
+}
+
+/* Явно отключаем zoom при фокусе на iOS */
+@supports (-webkit-touch-callout: none) {
+  .input-field:focus {
+    font-size: 16px;
+  }
 }
 
 .input-field::placeholder {
