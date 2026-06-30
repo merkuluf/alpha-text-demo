@@ -16,6 +16,7 @@ const toolbarItems = ref([
   'italic',
   'strike',
   'lists',
+  'link',
   'blockquote',
   'codeBlock',
   'horizontalRule',

@@ -4,6 +4,7 @@ import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import ListItem from '@tiptap/extension-list-item'
 import { ref, watch, onBeforeUnmount } from 'vue'
+import LinkModal from './LinkModal.vue'
 
 // По умолчанию схема listItem = "paragraph block*", т.е. элемент списка
 // обязан начинаться с параграфа и заголовок туда не пускается.
@@ -42,6 +43,8 @@ const emit = defineEmits<{
 }>()
 
 const openDropdown = ref<string | null>(null)
+const showLinkModal = ref(false)
+const linkModalInitialUrl = ref('')
 
 const editor = useEditor({
   extensions: [StarterKit.configure({ listItem: false }), ListItemWithHeading, Markdown],
@@ -115,18 +118,24 @@ const applyOrderedList = () => applyCommand(() => editor.value?.commands.toggleO
 
 const toggleLink = () => {
   if (!editor.value) return
-  if (editor.value.isActive('link')) {
-    editor.value.commands.unsetLink()
-    return
-  }
-  const previous = editor.value.getAttributes('link').href ?? ''
-  const url = window.prompt('Введите ссылку:', previous)
-  if (url === null) return
+  linkModalInitialUrl.value = editor.value.getAttributes('link').href ?? ''
+  showLinkModal.value = true
+}
+
+const handleLinkConfirm = (url: string) => {
+  showLinkModal.value = false
+  if (!editor.value) return
   if (url === '') {
     editor.value.commands.unsetLink()
     return
   }
   editor.value.commands.setLink({ href: url })
+  editor.value.commands.focus()
+}
+
+const handleLinkCancel = () => {
+  showLinkModal.value = false
+  linkModalInitialUrl.value = ''
 }
 
 // Клик в любом месте области ввода переводит в режим набора текста.
@@ -151,6 +160,12 @@ defineExpose({
 </script>
 
 <template>
+  <LinkModal
+    :is-open="showLinkModal"
+    :initial-url="linkModalInitialUrl"
+    @confirm="handleLinkConfirm"
+    @cancel="handleLinkCancel"
+  />
   <div class="tiptap-editor-wrapper">
     <div class="tiptap-toolbar">
       <!-- Text Style Dropdown -->
