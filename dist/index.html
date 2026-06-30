@@ -1,12 +1,46 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="ru">
   <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/alpha-text-demo/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
-    <script type="module" crossorigin src="/alpha-text-demo/assets/index-BPQIiUar.js"></script>
-    <link rel="stylesheet" crossorigin href="/alpha-text-demo/assets/index-BumuqLqs.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+    <meta name="description" content="Alpha-Doc Text Editor - Полнофункциональный редактор текста с адаптивным интерфейсом">
+    <meta name="theme-color" content="#f8f9fa">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="light">
+    <title>Alpha-Doc Text Editor</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        width: 100%;
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f8f9fa;
+        color: #1f2937;
+      }
+      #app {
+        width: 100%;
+        min-height: 100vh;
+      }
+      /* Отключаем autofocus zoom на iOS для input и textarea */
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="number"],
+      input[type="url"],
+      textarea,
+      select {
+        font-size: 16px !important;
+        -webkit-appearance: none;
+        -webkit-user-scalable: 1;
+      }
+    </style>
+    <script type="module" crossorigin src="/alpha-text-demo/assets/index-CRgRrGyU.js"></script>
+    <link rel="stylesheet" crossorigin href="/alpha-text-demo/assets/index-CDcU7cml.css">
   </head>
   <body>
     <div id="app"></div>
