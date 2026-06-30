@@ -41,10 +41,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const wrapperRef = ref<HTMLDivElement>()
-const isResizing = ref(false)
-const startY = ref(0)
-const startHeight = ref(0)
 const openDropdown = ref<string | null>(null)
 
 const editor = useEditor({
@@ -78,27 +74,6 @@ const clearContent = () => {
   if (editor.value) {
     editor.value.commands.clearContent(true)
   }
-}
-
-const startResize = (e: MouseEvent) => {
-  isResizing.value = true
-  startY.value = e.clientY
-  startHeight.value = wrapperRef.value?.clientHeight || 0
-  document.addEventListener('mousemove', onResize)
-  document.addEventListener('mouseup', stopResize)
-}
-
-const onResize = (e: MouseEvent) => {
-  if (!isResizing.value || !wrapperRef.value) return
-  const delta = e.clientY - startY.value
-  const newHeight = Math.max(300, startHeight.value + delta)
-  wrapperRef.value.style.height = `${newHeight}px`
-}
-
-const stopResize = () => {
-  isResizing.value = false
-  document.removeEventListener('mousemove', onResize)
-  document.removeEventListener('mouseup', stopResize)
 }
 
 const handleClickOutside = (event: MouseEvent) => {
@@ -176,7 +151,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="wrapperRef" class="tiptap-editor-wrapper">
+  <div class="tiptap-editor-wrapper">
     <div class="tiptap-toolbar">
       <!-- Text Style Dropdown -->
       <div v-if="toolbarItems.includes('textStyle')" class="toolbar-dropdown">
@@ -370,7 +345,6 @@ defineExpose({
     </div>
 
     <EditorContent :editor="editor" class="tiptap-editor-content" @mousedown="focusEditor" />
-    <div class="resize-handle" @mousedown="startResize" />
   </div>
 </template>
 
@@ -384,9 +358,24 @@ defineExpose({
   flex-direction: column;
   border: none;
   border-radius: 12px;
-  overflow: visible;
+  overflow: hidden;
   background: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  resize: vertical;
+}
+
+.tiptap-editor-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 0 0 12px 0;
+  pointer-events: none;
+  z-index: 100;
+  display: block;
 }
 
 .tiptap-toolbar {
@@ -591,31 +580,6 @@ defineExpose({
   color: #1f2937;
   border-radius: 0 0 12px 12px;
   cursor: text;
-}
-
-.resize-handle {
-  position: absolute;
-  bottom: 3px;
-  right: 3px;
-  width: 14px;
-  height: 14px;
-  background:
-    linear-gradient(135deg, #bfbfbf 0%, #bfbfbf 2px, transparent 2px),
-    linear-gradient(135deg, #bfbfbf 8px, #bfbfbf 10px, transparent 10px),
-    linear-gradient(135deg, #bfbfbf 16px, #bfbfbf 18px, transparent 18px);
-  background-size: 3px 3px;
-  background-position:
-    0 0,
-    3px 3px,
-    6px 6px;
-  background-repeat: no-repeat;
-  cursor: se-resize;
-  transition: opacity 0.2s;
-  opacity: 0.3;
-}
-
-.resize-handle:hover {
-  opacity: 0.6;
 }
 
 /* Tiptap default styles */

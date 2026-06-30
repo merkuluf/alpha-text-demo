@@ -42,7 +42,6 @@ const printData = () => {
   console.log('\nJSON:', json)
 }
 
-
 const loadSampleContent = () => {
   const sample = `
     <h1>Sample Content</h1>
@@ -105,7 +104,7 @@ const handleEmailChange = (value: string) => {
         />
       </section>
 
-      <section class="demo-section">
+      <!-- <section class="demo-section">
         <h4 class="section-title">⚙️ Адаптивные поля ввода</h4>
         <div class="input-grid">
           <ResponsiveInput
@@ -136,7 +135,7 @@ const handleEmailChange = (value: string) => {
             :rows="4"
           />
         </div>
-      </section>
+      </section> -->
 
       <section class="demo-section">
         <h4 class="section-title">🎮 Управление редактором</h4>
@@ -277,11 +276,7 @@ body {
   justify-content: center;
   align-items: flex-start;
   padding: 20px;
-  background: linear-gradient(
-    135deg,
-    #f8f9fa 0%,
-    #f0f2f5 100%
-  );
+  background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
 }
 
 .main-content {
