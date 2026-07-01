@@ -18,7 +18,7 @@ const ListItemWithHeading = ListItem.extend({
 // Кастомизируем Bold чтобы использовать *текст* (Jira формат)
 const CustomBold = Bold.extend({
   renderMarkdown(node, helpers) {
-    const content = helpers.renderChildren(node.content)
+    const content = helpers.renderChildren(node.content || [])
     return `*${content}*`
   },
 })
@@ -26,7 +26,7 @@ const CustomBold = Bold.extend({
 // Кастомизируем Italic чтобы использовать _текст_ (Jira формат)
 const CustomItalic = Italic.extend({
   renderMarkdown(node, helpers) {
-    const content = helpers.renderChildren(node.content)
+    const content = helpers.renderChildren(node.content || [])
     return `_${content}_`
   },
 })
