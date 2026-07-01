@@ -3,6 +3,8 @@ import { useEditor, EditorContent } from '@tiptap/vue-3'
 import { Markdown } from '@tiptap/markdown'
 import StarterKit from '@tiptap/starter-kit'
 import ListItem from '@tiptap/extension-list-item'
+import Bold from '@tiptap/extension-bold'
+import Italic from '@tiptap/extension-italic'
 import { ref, watch, onBeforeUnmount } from 'vue'
 import LinkModal from './LinkModal.vue'
 
@@ -11,6 +13,22 @@ import LinkModal from './LinkModal.vue'
 // Расширяем content, чтобы первый блок мог быть и заголовком.
 const ListItemWithHeading = ListItem.extend({
   content: '(paragraph | heading) block*',
+})
+
+// Кастомизируем Bold чтобы использовать *текст* (Jira формат)
+const CustomBold = Bold.extend({
+  renderMarkdown(node, helpers) {
+    const content = helpers.renderChildren(node.content)
+    return `*${content}*`
+  },
+})
+
+// Кастомизируем Italic чтобы использовать _текст_ (Jira формат)
+const CustomItalic = Italic.extend({
+  renderMarkdown(node, helpers) {
+    const content = helpers.renderChildren(node.content)
+    return `_${content}_`
+  },
 })
 
 interface Props {
@@ -47,9 +65,20 @@ const showLinkModal = ref(false)
 const linkModalInitialUrl = ref('')
 const viewMode = ref<'editor' | 'markdown'>('editor')
 const markdownContent = ref('')
+const markdownTextarea = ref<HTMLTextAreaElement | null>(null)
 
 const editor = useEditor({
-  extensions: [StarterKit.configure({ listItem: false }), ListItemWithHeading, Markdown],
+  extensions: [
+    StarterKit.configure({
+      listItem: false,
+      bold: false,  // Отключаем стандартный Bold
+      italic: false // Отключаем стандартный Italic
+    }),
+    ListItemWithHeading,
+    CustomBold,    // Используем кастомный Bold (__текст__)
+    CustomItalic,  // Используем кастомный Italic (_текст_)
+    Markdown
+  ],
   content: props.modelValue,
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
@@ -107,19 +136,23 @@ watch(
   },
 )
 
-const applyCommand = (command: () => void) => {
-  command()
+const applyCommand = (editorCommand: () => void, markdownCommand?: () => void) => {
+  if (viewMode.value === 'markdown' && markdownCommand) {
+    markdownCommand()
+  } else {
+    editorCommand()
+  }
   openDropdown.value = null
 }
 
 const applyParagraph = () => applyCommand(() => editor.value?.commands.setParagraph())
-const applyHeading1 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 1 }))
-const applyHeading2 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 2 }))
-const applyHeading3 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 3 }))
-const applyHeading4 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 4 }))
-const applyHeading5 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 5 }))
-const applyBulletList = () => applyCommand(() => editor.value?.commands.toggleBulletList())
-const applyOrderedList = () => applyCommand(() => editor.value?.commands.toggleOrderedList())
+const applyHeading1 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 1 }), markdownHeading1)
+const applyHeading2 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 2 }), markdownHeading2)
+const applyHeading3 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 3 }), markdownHeading3)
+const applyHeading4 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 4 }), markdownHeading4)
+const applyHeading5 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 5 }), markdownHeading5)
+const applyBulletList = () => applyCommand(() => editor.value?.commands.toggleBulletList(), markdownBulletList)
+const applyOrderedList = () => applyCommand(() => editor.value?.commands.toggleOrderedList(), markdownOrderedList)
 
 const toggleLink = () => {
   if (!editor.value) return
@@ -151,14 +184,323 @@ const handleLinkCancel = () => {
   linkModalInitialUrl.value = ''
 }
 
+// Функции для работы с markdown в режиме текста
+const wrapMarkdownSelection = (before: string, after: string = before) => {
+  if (!markdownTextarea.value) return
+
+  const textarea = markdownTextarea.value
+  let start = textarea.selectionStart
+  let end = textarea.selectionEnd
+  const text = markdownContent.value
+  let selectedText = text.substring(start, end)
+
+  if (!selectedText) return
+
+  // Проверяем есть ли уже форматирование (могут быть символы до и после выделения)
+  const beforeMatch = before.length > 0 && text.substring(Math.max(0, start - before.length), start) === before
+  const afterMatch = after.length > 0 && text.substring(end, end + after.length) === after
+
+  if (beforeMatch && afterMatch) {
+    // Если форматирование уже есть вокруг текста - удаляем (toggle)
+    const newStart = start - before.length
+    const newEnd = end + after.length
+    const newText = text.substring(0, newStart) + selectedText + text.substring(newEnd)
+    markdownContent.value = newText
+
+    // Выделяем только исходный текст (без символов)
+    setTimeout(() => {
+      textarea.selectionStart = newStart
+      textarea.selectionEnd = newStart + selectedText.length
+      textarea.focus()
+    }, 0)
+  } else if (selectedText.startsWith(before) && selectedText.endsWith(after)) {
+    // Если форматирование уже в самом выделенном тексте - удаляем
+    selectedText = selectedText.substring(before.length, selectedText.length - after.length)
+    const newText = text.substring(0, start) + selectedText + text.substring(end)
+    markdownContent.value = newText
+
+    setTimeout(() => {
+      textarea.selectionStart = start
+      textarea.selectionEnd = start + selectedText.length
+      textarea.focus()
+    }, 0)
+  } else {
+    // Иначе добавляем форматирование
+    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end)
+    markdownContent.value = newText
+
+    // Выделяем текст ВМЕ СТЕ С символами форматирования
+    setTimeout(() => {
+      textarea.selectionStart = start
+      textarea.selectionEnd = start + before.length + selectedText.length + after.length
+      textarea.focus()
+    }, 0)
+  }
+}
+
+const markdownBold = () => wrapMarkdownSelection('*', '*')
+const markdownItalic = () => wrapMarkdownSelection('_', '_')
+const markdownUnderline = () => wrapMarkdownSelection('+', '+')
+const markdownStrike = () => wrapMarkdownSelection('-', '-')
+const markdownCode = () => wrapMarkdownSelection('{{', '}}')
+const applyHeadingLevel = (level: number) => {
+  if (!markdownTextarea.value) return
+  const textarea = markdownTextarea.value
+  const start = textarea.selectionStart
+
+  let lineStart = markdownContent.value.lastIndexOf('\n', start - 1)
+  lineStart = lineStart === -1 ? 0 : lineStart + 1
+  let lineEnd = markdownContent.value.indexOf('\n', start)
+  lineEnd = lineEnd === -1 ? markdownContent.value.length : lineEnd
+
+  let line = markdownContent.value.substring(lineStart, lineEnd)
+  const jiraHeading = `h${level}. `
+
+  // Проверяем есть ли уже такой же уровень заголовка
+  if (line.startsWith(jiraHeading)) {
+    // Если есть - убираем (toggle)
+    line = line.substring(jiraHeading.length)
+  } else {
+    // Иначе удаляем существующий заголовок и добавляем новый
+    line = line.replace(/^h[1-5]\.\s*/, '')
+    line = jiraHeading + line
+  }
+
+  const newText = markdownContent.value.substring(0, lineStart) + line + markdownContent.value.substring(lineEnd)
+  markdownContent.value = newText
+
+  setTimeout(() => {
+    textarea.focus()
+  }, 0)
+}
+
+const markdownHeading1 = () => applyHeadingLevel(1)
+
+const markdownBulletList = () => {
+  if (!markdownTextarea.value) return
+  const textarea = markdownTextarea.value
+  const start = textarea.selectionStart
+
+  let lineStart = markdownContent.value.lastIndexOf('\n', start - 1)
+  lineStart = lineStart === -1 ? 0 : lineStart + 1
+  let lineEnd = markdownContent.value.indexOf('\n', start)
+  lineEnd = lineEnd === -1 ? markdownContent.value.length : lineEnd
+
+  let line = markdownContent.value.substring(lineStart, lineEnd)
+
+  if (line.match(/^\s*\*\s/)) {
+    // Если уже bullet list - убираем
+    line = line.replace(/^\s*\*\s+/, '')
+  } else {
+    // Иначе удаляем другие префиксы и добавляем * (Jira формат)
+    line = line.replace(/^(\s*)(\*+|#+|\d+\.)\s+/, '$1')
+    line = '* ' + line
+  }
+
+  const newText = markdownContent.value.substring(0, lineStart) + line + markdownContent.value.substring(lineEnd)
+  markdownContent.value = newText
+
+  setTimeout(() => {
+    textarea.focus()
+  }, 0)
+}
+
+const markdownOrderedList = () => {
+  if (!markdownTextarea.value) return
+  const textarea = markdownTextarea.value
+  const start = textarea.selectionStart
+
+  let lineStart = markdownContent.value.lastIndexOf('\n', start - 1)
+  lineStart = lineStart === -1 ? 0 : lineStart + 1
+  let lineEnd = markdownContent.value.indexOf('\n', start)
+  lineEnd = lineEnd === -1 ? markdownContent.value.length : lineEnd
+
+  let line = markdownContent.value.substring(lineStart, lineEnd)
+
+  if (line.match(/^\s*#\s/)) {
+    // Если уже ordered list - убираем
+    line = line.replace(/^\s*#\s+/, '')
+  } else {
+    // Иначе удаляем другие префиксы и добавляем # (Jira формат)
+    line = line.replace(/^(\s*)(\*+|#+|\d+\.)\s+/, '$1')
+    line = '# ' + line
+  }
+
+  const newText = markdownContent.value.substring(0, lineStart) + line + markdownContent.value.substring(lineEnd)
+  markdownContent.value = newText
+
+  setTimeout(() => {
+    textarea.focus()
+  }, 0)
+}
+
+const markdownHeading2 = () => applyHeadingLevel(2)
+const markdownHeading3 = () => applyHeadingLevel(3)
+const markdownHeading4 = () => applyHeadingLevel(4)
+const markdownHeading5 = () => applyHeadingLevel(5)
+
+const markdownBlockquote = () => {
+  if (!markdownTextarea.value) return
+  const textarea = markdownTextarea.value
+  const start = textarea.selectionStart
+
+  let lineStart = markdownContent.value.lastIndexOf('\n', start - 1)
+  lineStart = lineStart === -1 ? 0 : lineStart + 1
+  let lineEnd = markdownContent.value.indexOf('\n', start)
+  lineEnd = lineEnd === -1 ? markdownContent.value.length : lineEnd
+
+  let line = markdownContent.value.substring(lineStart, lineEnd)
+
+  if (line.startsWith('bq. ')) {
+    // Если уже цитата - убираем (Jira формат)
+    line = line.substring(4)
+  } else {
+    // Иначе добавляем (Jira формат)
+    line = 'bq. ' + line
+  }
+
+  const newText = markdownContent.value.substring(0, lineStart) + line + markdownContent.value.substring(lineEnd)
+  markdownContent.value = newText
+
+  setTimeout(() => {
+    textarea.focus()
+  }, 0)
+}
+
+const markdownCodeBlock = () => {
+  if (!markdownTextarea.value) return
+  const textarea = markdownTextarea.value
+  const start = textarea.selectionStart
+  const text = markdownContent.value
+
+  // Добавляем блок кода в Jira формате
+  const newText = text.substring(0, start) + '{code}\n\n{code}\n' + text.substring(start)
+  markdownContent.value = newText
+
+  setTimeout(() => {
+    textarea.selectionStart = start + 7
+    textarea.selectionEnd = start + 7
+    textarea.focus()
+  }, 0)
+}
+
+const markdownHorizontalRule = () => {
+  if (!markdownTextarea.value) return
+  const textarea = markdownTextarea.value
+  const start = textarea.selectionStart
+
+  let lineStart = markdownContent.value.lastIndexOf('\n', start - 1)
+  lineStart = lineStart === -1 ? 0 : lineStart + 1
+
+  // В Jira для горизонтальной линии используется ----
+  const newText = markdownContent.value.substring(0, lineStart) + '----\n' + markdownContent.value.substring(lineStart)
+  markdownContent.value = newText
+
+  setTimeout(() => {
+    textarea.focus()
+  }, 0)
+}
+
+// Конвертация Jira формата в стандартный markdown для Tiptap
+const jiraToMarkdown = (jira: string): string => {
+  let result = jira
+
+  // Заголовки: h1. → #, h2. → ##, и т.д.
+  result = result.replace(/^h1\.\s+/gm, '# ')
+  result = result.replace(/^h2\.\s+/gm, '## ')
+  result = result.replace(/^h3\.\s+/gm, '### ')
+  result = result.replace(/^h4\.\s+/gm, '#### ')
+  result = result.replace(/^h5\.\s+/gm, '##### ')
+
+  // Блок кода: {code}...{code} → ```...```
+  result = result.replace(/\{code(?::.*?)?\}/g, '```')
+
+  // Цитата: bq. → >
+  result = result.replace(/^bq\.\s+/gm, '> ')
+
+  // Форматирование текста - комбинированные ПЕРВЫМИ
+  // Жирный курсив: *_текст_* → ***текст***
+  result = result.replace(/\*_(.+?)_\*/g, '***$1***')
+  result = result.replace(/_\*(.+?)\*_/g, '***$1***')
+
+  // Просто жирный: *текст* → **текст**
+  result = result.replace(/\*(.+?)\*/g, '**$1**')
+
+  // Просто курсив: _текст_ → *текст*
+  result = result.replace(/_(.+?)_/g, '*$1*')
+
+  // Зачеркивание: -текст- → ~~текст~~
+  result = result.replace(/-(.+?)-/g, '~~$1~~')
+
+  // Подчеркивание: +текст+ → __текст__
+  result = result.replace(/\+(.+?)\+/g, '__$1__')
+
+  // Код: {{текст}} → `текст`
+  result = result.replace(/\{\{(.+?)\}\}/g, '`$1`')
+
+  // Списки: # → 1. (нумерованный), * остается как есть
+  result = result.replace(/^#\s+/gm, '1. ')
+  result = result.replace(/^##\s+/gm, '   1. ')
+
+  return result
+}
+
+// Конвертация стандартного markdown обратно в Jira формат
+const markdownToJira = (markdown: string): string => {
+  let result = markdown
+
+  // Заголовки: # → h1., ## → h2., и т.д.
+  result = result.replace(/^##### /gm, 'h5. ')
+  result = result.replace(/^#### /gm, 'h4. ')
+  result = result.replace(/^### /gm, 'h3. ')
+  result = result.replace(/^## /gm, 'h2. ')
+  result = result.replace(/^# /gm, 'h1. ')
+
+  // Блок кода: ```...``` → {code}...{code}
+  result = result.replace(/```/g, '{code}')
+
+  // Цитата: > → bq.
+  result = result.replace(/^> /gm, 'bq. ')
+
+  // Форматирование текста - комбинированные ПЕРВЫМИ
+  // Жирный курсив: ***текст*** → *_текст_*
+  result = result.replace(/\*\*\*(.+?)\*\*\*/g, '*_$1_*')
+
+  // Просто жирный: **текст** → *текст*
+  result = result.replace(/\*\*(.+?)\*\*/g, '*$1*')
+
+  // Просто курсив: *текст* → _текст_
+  result = result.replace(/\*(.+?)\*/g, '_$1_')
+
+  // Зачеркивание: ~~текст~~ → -текст-
+  result = result.replace(/~~(.+?)~~/g, '-$1-')
+
+  // Подчеркивание: __текст__ → +текст+
+  result = result.replace(/__(.+?)__/g, '+$1+')
+
+  // Код: `текст` → {{текст}}
+  result = result.replace(/`(.+?)`/g, '{{$1}}')
+
+  // Нумерованные списки: 1. → #
+  result = result.replace(/^1\. /gm, '# ')
+  result = result.replace(/^   1\. /gm, '## ')
+
+  return result
+}
+
 watch(
   () => viewMode.value,
   (newMode) => {
     if (newMode === 'markdown') {
+      // Переходим в markdown режим
+      // getMarkdown() выдает Jira формат благодаря CustomBold и CustomItalic
       markdownContent.value = editor.value?.getMarkdown() ?? ''
     } else {
+      // Переходим в визуальный режим
       if (editor.value) {
-        editor.value.commands.setContent(markdownContent.value, { contentType: 'markdown' })
+        // markdownContent содержит Jira формат, нужно конвертировать в стандартный markdown
+        const markdownFormatted = jiraToMarkdown(markdownContent.value)
+        editor.value.commands.setContent(markdownFormatted, { contentType: 'markdown' })
       }
     }
   }
@@ -255,40 +597,40 @@ defineExpose({
       <!-- Formatting Buttons -->
       <button
         v-if="toolbarItems.includes('bold')"
-        :class="{ 'is-active': editor?.isActive('bold') }"
-        @click="editor?.commands.toggleBold()"
+        :class="{ 'is-active': viewMode === 'editor' ? editor?.isActive('bold') : false }"
+        @click="viewMode === 'markdown' ? markdownBold() : editor?.commands.toggleBold()"
         :title="'Жирный (Ctrl+B)'"
       >
         <strong>B</strong>
       </button>
       <button
         v-if="toolbarItems.includes('italic')"
-        :class="{ 'is-active': editor?.isActive('italic') }"
-        @click="editor?.commands.toggleItalic()"
+        :class="{ 'is-active': viewMode === 'editor' ? editor?.isActive('italic') : false }"
+        @click="viewMode === 'markdown' ? markdownItalic() : editor?.commands.toggleItalic()"
         :title="'Курсив (Ctrl+I)'"
       >
         <em>I</em>
       </button>
       <button
         v-if="toolbarItems.includes('underline')"
-        :class="{ 'is-active': editor?.isActive('underline') }"
-        @click="editor?.commands.toggleUnderline()"
+        :class="{ 'is-active': viewMode === 'editor' ? editor?.isActive('underline') : false }"
+        @click="viewMode === 'markdown' ? markdownUnderline() : editor?.commands.toggleUnderline()"
         :title="'Подчёркнутый (Ctrl+U)'"
       >
         <u>U</u>
       </button>
       <button
         v-if="toolbarItems.includes('strike')"
-        :class="{ 'is-active': editor?.isActive('strike') }"
-        @click="editor?.commands.toggleStrike()"
+        :class="{ 'is-active': viewMode === 'editor' ? editor?.isActive('strike') : false }"
+        @click="viewMode === 'markdown' ? markdownStrike() : editor?.commands.toggleStrike()"
         :title="'Зачеркивание'"
       >
         <s>S</s>
       </button>
       <button
         v-if="toolbarItems.includes('code')"
-        :class="{ 'is-active': editor?.isActive('code') }"
-        @click="editor?.commands.toggleCode()"
+        :class="{ 'is-active': viewMode === 'editor' ? editor?.isActive('code') : false }"
+        @click="viewMode === 'markdown' ? markdownCode() : editor?.commands.toggleCode()"
         :title="'Встроенный код (Ctrl+E)'"
       >
         <code class="code-glyph">&lt;/&gt;</code>
@@ -334,8 +676,8 @@ defineExpose({
 
       <button
         v-if="toolbarItems.includes('blockquote')"
-        :class="{ 'is-active': editor?.isActive('blockquote') }"
-        @click="editor?.commands.toggleBlockquote()"
+        :class="{ 'is-active': viewMode === 'editor' ? editor?.isActive('blockquote') : false }"
+        @click="viewMode === 'markdown' ? markdownBlockquote() : editor?.commands.toggleBlockquote()"
         :title="'Блок цитаты'"
         class="hide-on-mobile"
       >
@@ -343,8 +685,8 @@ defineExpose({
       </button>
       <button
         v-if="toolbarItems.includes('codeBlock')"
-        :class="{ 'is-active': editor?.isActive('codeBlock') }"
-        @click="editor?.commands.toggleCodeBlock()"
+        :class="{ 'is-active': viewMode === 'editor' ? editor?.isActive('codeBlock') : false }"
+        @click="viewMode === 'markdown' ? markdownCodeBlock() : editor?.commands.toggleCodeBlock()"
         :title="'Блок кода'"
       >
         <code class="code-glyph">{ }</code>
@@ -354,7 +696,7 @@ defineExpose({
 
       <button
         v-if="toolbarItems.includes('horizontalRule')"
-        @click="editor?.commands.setHorizontalRule()"
+        @click="viewMode === 'markdown' ? markdownHorizontalRule() : editor?.commands.setHorizontalRule()"
         :title="'Горизонтальная линия'"
         class="hide-on-mobile"
       >
@@ -413,6 +755,7 @@ defineExpose({
     </div>
     <div v-else class="markdown-view">
       <textarea
+        ref="markdownTextarea"
         v-model="markdownContent"
         class="markdown-textarea"
         placeholder="Markdown..."
