@@ -45,6 +45,8 @@ const emit = defineEmits<{
 const openDropdown = ref<string | null>(null)
 const showLinkModal = ref(false)
 const linkModalInitialUrl = ref('')
+const viewMode = ref<'editor' | 'markdown'>('editor')
+const markdownContent = ref('')
 
 const editor = useEditor({
   extensions: [StarterKit.configure({ listItem: false }), ListItemWithHeading, Markdown],
@@ -77,6 +79,7 @@ const clearContent = () => {
   if (editor.value) {
     editor.value.commands.clearContent(true)
   }
+  markdownContent.value = ''
 }
 
 const handleClickOutside = (event: MouseEvent) => {
@@ -113,6 +116,8 @@ const applyParagraph = () => applyCommand(() => editor.value?.commands.setParagr
 const applyHeading1 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 1 }))
 const applyHeading2 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 2 }))
 const applyHeading3 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 3 }))
+const applyHeading4 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 4 }))
+const applyHeading5 = () => applyCommand(() => editor.value?.commands.toggleHeading({ level: 5 }))
 const applyBulletList = () => applyCommand(() => editor.value?.commands.toggleBulletList())
 const applyOrderedList = () => applyCommand(() => editor.value?.commands.toggleOrderedList())
 
@@ -133,10 +138,31 @@ const handleLinkConfirm = (url: string) => {
   editor.value.commands.focus()
 }
 
+const handleLinkDelete = () => {
+  showLinkModal.value = false
+  if (!editor.value) return
+  editor.value.commands.unsetLink()
+  editor.value.commands.focus()
+  linkModalInitialUrl.value = ''
+}
+
 const handleLinkCancel = () => {
   showLinkModal.value = false
   linkModalInitialUrl.value = ''
 }
+
+watch(
+  () => viewMode.value,
+  (newMode) => {
+    if (newMode === 'markdown') {
+      markdownContent.value = editor.value?.getMarkdown() ?? ''
+    } else {
+      if (editor.value) {
+        editor.value.commands.setContent(markdownContent.value, { contentType: 'markdown' })
+      }
+    }
+  }
+)
 
 // Клик в любом месте области ввода переводит в режим набора текста.
 const focusEditor = (event: MouseEvent) => {
@@ -164,6 +190,7 @@ defineExpose({
     :is-open="showLinkModal"
     :initial-url="linkModalInitialUrl"
     @confirm="handleLinkConfirm"
+    @delete="handleLinkDelete"
     @cancel="handleLinkCancel"
   />
   <div class="tiptap-editor-wrapper">
@@ -174,17 +201,7 @@ defineExpose({
           class="dropdown-toggle"
           @click="openDropdown = openDropdown === 'textStyle' ? null : 'textStyle'"
         >
-          <span class="dropdown-label">
-            {{
-              editor?.isActive('heading', { level: 1 })
-                ? 'Заголовок 1'
-                : editor?.isActive('heading', { level: 2 })
-                  ? 'Заголовок 2'
-                  : editor?.isActive('heading', { level: 3 })
-                    ? 'Заголовок 3'
-                    : 'Обычный текст'
-            }}
-          </span>
+          <span class="dropdown-label">Стиль</span>
           <span class="dropdown-arrow">▼</span>
         </button>
         <div v-if="openDropdown === 'textStyle'" class="dropdown-menu">
@@ -195,28 +212,42 @@ defineExpose({
             }"
             @click="applyParagraph"
           >
-            Обычный текст
+            <span class="style-preview">Обычный текст</span>
           </button>
           <button
             class="dropdown-item"
             :class="{ 'is-active': editor?.isActive('heading', { level: 1 }) }"
             @click="applyHeading1"
           >
-            Заголовок 1
+            <span class="style-preview style-h1">Заголовок 1</span>
           </button>
           <button
             class="dropdown-item"
             :class="{ 'is-active': editor?.isActive('heading', { level: 2 }) }"
             @click="applyHeading2"
           >
-            Заголовок 2
+            <span class="style-preview style-h2">Заголовок 2</span>
           </button>
           <button
             class="dropdown-item"
             :class="{ 'is-active': editor?.isActive('heading', { level: 3 }) }"
             @click="applyHeading3"
           >
-            Заголовок 3
+            <span class="style-preview style-h3">Заголовок 3</span>
+          </button>
+          <button
+            class="dropdown-item"
+            :class="{ 'is-active': editor?.isActive('heading', { level: 4 }) }"
+            @click="applyHeading4"
+          >
+            <span class="style-preview style-h4">Заголовок 4</span>
+          </button>
+          <button
+            class="dropdown-item"
+            :class="{ 'is-active': editor?.isActive('heading', { level: 5 }) }"
+            @click="applyHeading5"
+          >
+            <span class="style-preview style-h5">Заголовок 5</span>
           </button>
         </div>
       </div>
@@ -280,11 +311,7 @@ defineExpose({
           :title="'Списки'"
           @click="openDropdown = openDropdown === 'lists' ? null : 'lists'"
         >
-          <span class="dropdown-label">
-            {{
-              editor?.isActive('bulletList') ? '◆' : editor?.isActive('orderedList') ? '1.' : '≡'
-            }}
-          </span>
+          <span class="dropdown-label">Списки</span>
           <span class="dropdown-arrow">▼</span>
         </button>
         <div v-if="openDropdown === 'lists'" class="dropdown-menu">
@@ -310,6 +337,7 @@ defineExpose({
         :class="{ 'is-active': editor?.isActive('blockquote') }"
         @click="editor?.commands.toggleBlockquote()"
         :title="'Блок цитаты'"
+        class="hide-on-mobile"
       >
         "
       </button>
@@ -328,6 +356,7 @@ defineExpose({
         v-if="toolbarItems.includes('horizontalRule')"
         @click="editor?.commands.setHorizontalRule()"
         :title="'Горизонтальная линия'"
+        class="hide-on-mobile"
       >
         ─
       </button>
@@ -346,20 +375,49 @@ defineExpose({
         :disabled="!editor?.can().undo()"
         @click="editor?.commands.undo()"
         :title="'Отменить (Ctrl+Z)'"
+        class="hide-on-mobile"
       >
         ↶
       </button>
       <button
         v-if="toolbarItems.includes('redo')"
         :disabled="!editor?.can().redo()"
-        @click="editor?.commands.redo()"
         :title="'Повторить (Ctrl+Y)'"
+        class="hide-on-mobile"
       >
         ↷
       </button>
+
+      <div class="toolbar-divider"></div>
+
+      <div class="view-mode-toggle">
+        <button
+          @click="viewMode = 'markdown'"
+          :class="{ 'is-active': viewMode === 'markdown' }"
+          title="Markdown просмотр"
+        >
+          Текст
+        </button>
+        <button
+          @click="viewMode = 'editor'"
+          :class="{ 'is-active': viewMode === 'editor' }"
+          title="Визуальный просмотр"
+        >
+          Визуально
+        </button>
+      </div>
     </div>
 
-    <EditorContent :editor="editor" class="tiptap-editor-content" @mousedown="focusEditor" />
+    <div v-if="viewMode === 'editor'" class="tiptap-editor-content" @mousedown="focusEditor">
+      <EditorContent :editor="editor" />
+    </div>
+    <div v-else class="markdown-view">
+      <textarea
+        v-model="markdownContent"
+        class="markdown-textarea"
+        placeholder="Markdown..."
+      ></textarea>
+    </div>
   </div>
 </template>
 
@@ -433,6 +491,14 @@ defineExpose({
     padding: 6px 8px;
     border-radius: 8px 8px 0 0;
     min-height: 44px;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .toolbar-divider {
+    display: none !important;
   }
 }
 
@@ -685,5 +751,134 @@ defineExpose({
   border: none;
   border-top: 2px solid #e0e0e0;
   margin: 2em 0;
+}
+
+/* Disable link clicks when editing */
+:deep(.ProseMirror a) {
+  pointer-events: none;
+}
+
+/* Style preview sizes */
+.style-preview {
+  display: inline-block;
+}
+
+.style-h1 {
+  font-size: 1.8em;
+  font-weight: 700;
+}
+
+.style-h2 {
+  font-size: 1.5em;
+  font-weight: 700;
+}
+
+.style-h3 {
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+.style-h4 {
+  font-size: 1.05em;
+  font-weight: 700;
+}
+
+.style-h5 {
+  font-size: 0.95em;
+  font-weight: 700;
+}
+
+.markdown-view {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: white;
+  border-radius: 0 0 12px 12px;
+}
+
+.markdown-textarea {
+  flex: 1;
+  padding: 16px;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  border: none;
+  outline: none;
+  resize: none;
+  background: white;
+  color: #1f2937;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .markdown-textarea {
+    font-size: 13px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .markdown-textarea {
+    font-size: 12px;
+    padding: 10px;
+  }
+}
+
+.markdown-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.view-mode-toggle {
+  display: inline-flex;
+  gap: 0;
+  background: #f3f4f6;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1.5px solid #d1d5db;
+}
+
+.view-mode-toggle button {
+  flex: 1;
+  min-width: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.view-mode-toggle button:hover:not(.is-active) {
+  color: #374151;
+}
+
+.view-mode-toggle button.is-active {
+  background-color: white;
+  color: #1f2937;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+  .view-mode-toggle button {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .view-mode-toggle {
+    gap: 1px;
+  }
+
+  .view-mode-toggle button {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
 }
 </style>

@@ -13,6 +13,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   confirm: [url: string]
+  delete: []
   cancel: []
 }>()
 
@@ -40,6 +41,10 @@ const handleConfirm = () => {
   emit('confirm', url.value)
 }
 
+const handleDelete = () => {
+  emit('delete')
+}
+
 const handleCancel = () => {
   emit('cancel')
 }
@@ -52,16 +57,25 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
-const handleBackdropClick = (e: MouseEvent) => {
+const isMouseDownOnBackdrop = ref(false)
+
+const handleBackdropMouseDown = (e: MouseEvent) => {
   if (e.target === e.currentTarget) {
+    isMouseDownOnBackdrop.value = true
+  }
+}
+
+const handleBackdropMouseUp = (e: MouseEvent) => {
+  if (e.target === e.currentTarget && isMouseDownOnBackdrop.value) {
     handleCancel()
   }
+  isMouseDownOnBackdrop.value = false
 }
 </script>
 
 <template>
   <Teleport to="body" v-if="isOpen">
-    <div class="modal-backdrop" @click="handleBackdropClick">
+    <div class="modal-backdrop" @mousedown="handleBackdropMouseDown" @mouseup="handleBackdropMouseUp">
       <div class="modal-container">
         <div class="modal-header">
           <h3 class="modal-title">Добавить ссылку</h3>
@@ -75,15 +89,19 @@ const handleBackdropClick = (e: MouseEvent) => {
             id="link-input"
             v-model="url"
             type="url"
-            placeholder="https://example.com"
+            placeholder="https://alpha-doc.ru"
             class="link-input"
             @keydown="handleKeydown"
           />
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="handleCancel">Отмена</button>
-          <button class="btn btn-primary" @click="handleConfirm">Добавить ссылку</button>
+          <button v-if="props.initialUrl" class="btn btn-delete" @click="handleDelete">Удалить</button>
+          <div v-else class="spacer"></div>
+          <div class="button-group">
+            <button class="btn btn-cancel" @click="handleCancel">Отмена</button>
+            <button class="btn btn-primary" @click="handleConfirm">Добавить ссылку</button>
+          </div>
         </div>
       </div>
     </div>
@@ -150,6 +168,7 @@ const handleBackdropClick = (e: MouseEvent) => {
   font-size: 18px;
   font-weight: 700;
   color: #1f2937;
+  line-height: 1.2;
 }
 
 .modal-close {
@@ -188,7 +207,7 @@ const handleBackdropClick = (e: MouseEvent) => {
 
 .link-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 8px 16px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   font-size: 14px;
   color: #1f2937;
@@ -215,7 +234,17 @@ const handleBackdropClick = (e: MouseEvent) => {
   padding: 16px 24px;
   border-top: 1px solid #e5e7eb;
   background: #f9fafb;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
 }
 
 .btn {
@@ -263,6 +292,22 @@ const handleBackdropClick = (e: MouseEvent) => {
   background: #d97706;
 }
 
+.btn-delete {
+  background: #fecaca;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.btn-delete:hover {
+  background: #fca5a5;
+  border-color: #fca5a5;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+.btn-delete:active {
+  background: #f87171;
+}
+
 @media (max-width: 480px) {
   .modal-container {
     width: 95%;
@@ -285,6 +330,11 @@ const handleBackdropClick = (e: MouseEvent) => {
     padding: 12px 20px;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .button-group {
+    width: 100%;
+    flex-direction: column;
   }
 
   .btn {
